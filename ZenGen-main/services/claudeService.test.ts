@@ -89,7 +89,7 @@ describe('claudeService', () => {
 
   describe('checkAndRequestApiKey', () => {
     it('should return true when valid API key exists', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-valid-key-12345678901234567890');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'sk-ant-valid-key-12345678901234567890');
 
       const result = await checkAndRequestApiKey();
 
@@ -97,7 +97,7 @@ describe('claudeService', () => {
     });
 
     it('should return false when API key is missing', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', '');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', '');
 
       const result = await checkAndRequestApiKey();
 
@@ -105,7 +105,7 @@ describe('claudeService', () => {
     });
 
     it('should return false when API key is too short', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'sk-short');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'sk-short');
 
       const result = await checkAndRequestApiKey();
 
@@ -113,7 +113,7 @@ describe('claudeService', () => {
     });
 
     it('should return false when API key is a placeholder', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'your_api_key_here');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'your_api_key_here');
 
       const result = await checkAndRequestApiKey();
 
@@ -121,7 +121,7 @@ describe('claudeService', () => {
     });
 
     it('should return false when API key does not start with sk-', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'invalid-key-format-12345678901234567890');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'invalid-key-format-12345678901234567890');
 
       const result = await checkAndRequestApiKey();
 
@@ -131,7 +131,7 @@ describe('claudeService', () => {
 
   describe('generateMeditationScript', () => {
     beforeEach(() => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test-key-12345678901234567890');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'sk-ant-test-key-12345678901234567890');
     });
 
     it('should call Anthropic API with correct parameters', async () => {
@@ -206,7 +206,7 @@ describe('claudeService', () => {
     });
 
     it('should throw error when API key is missing', async () => {
-      vi.stubEnv('ANTHROPIC_API_KEY', '');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', '');
 
       const config = createMockMeditationConfig();
 
@@ -318,7 +318,7 @@ describe('claudeService', () => {
 
   describe('createChat', () => {
     beforeEach(() => {
-      vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test-key-12345678901234567890');
+      vi.stubEnv('VITE_ANTHROPIC_API_KEY', 'sk-ant-test-key-12345678901234567890');
     });
 
     it('should return object with sendMessage method', () => {

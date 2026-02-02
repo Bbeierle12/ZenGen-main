@@ -1,16 +1,16 @@
 import { VoiceName, MeditationConfig } from "../types";
 
-// Helper to get API key
+// Helper to get API key (Vite exposes env vars via import.meta.env with VITE_ prefix)
 const getApiKey = () => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error("API Key not found. Please add ANTHROPIC_API_KEY to your .env file.");
+    throw new Error("API Key not found. Please add VITE_ANTHROPIC_API_KEY to your .env file.");
   }
   return apiKey;
 };
 
 export const checkAndRequestApiKey = async (): Promise<boolean> => {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = import.meta.env.VITE_ANTHROPIC_API_KEY;
   // Check if key exists and is not a placeholder
   return !!key && key.length > 20 && !key.includes('your_') && key.startsWith('sk-');
 };

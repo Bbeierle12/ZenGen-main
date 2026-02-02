@@ -17,6 +17,9 @@ vi.mock('./services/claudeService', () => ({
   checkAndRequestApiKey: vi.fn().mockResolvedValue(true),
   generateMeditationScript: vi.fn().mockResolvedValue('Welcome to your meditation session...'),
   generateMeditationAudio: vi.fn().mockResolvedValue(null),
+  createChat: vi.fn(() => ({
+    sendMessage: vi.fn().mockResolvedValue({ text: 'Mock response' }),
+  })),
 }));
 
 vi.mock('./services/storageService', () => ({
@@ -36,6 +39,9 @@ vi.mock('./services/storageService', () => ({
   })),
   exportUserData: vi.fn(),
   importUserData: vi.fn(),
+  getUserPresets: vi.fn(() => []),
+  saveUserPreset: vi.fn(() => []),
+  deleteUserPreset: vi.fn(() => []),
 }));
 
 vi.mock('./services/soundscapeService', () => ({
@@ -55,12 +61,6 @@ vi.mock('./services/soundscapeService', () => ({
   })),
 }));
 
-vi.mock('./services/claudeService', () => ({
-  createChat: vi.fn(() => ({
-    sendMessage: vi.fn().mockResolvedValue({ text: 'Mock response' }),
-  })),
-}));
-
 import { getUserStats, clearUserStats } from './services/storageService';
 
 describe('App Integration Tests', () => {
@@ -69,18 +69,18 @@ describe('App Integration Tests', () => {
   });
 
   describe('initial render', () => {
-    it('should render the app with generator tab active by default', () => {
+    it('should render the app with presets tab active by default', () => {
       render(<App />);
 
-      expect(screen.getByText('Create Session')).toBeInTheDocument();
+      expect(screen.getByText('Guided Meditations')).toBeInTheDocument();
       expect(screen.getByText('ZenGen')).toBeInTheDocument();
     });
 
     it('should render navbar with tabs', () => {
       render(<App />);
 
-      expect(screen.getByText('Session')).toBeInTheDocument();
-      expect(screen.getByText('Meditations')).toBeInTheDocument();
+      expect(screen.getByText('Quick Start')).toBeInTheDocument();
+      expect(screen.getByText('Custom')).toBeInTheDocument();
     });
 
     it('should load user stats on mount', () => {
@@ -89,10 +89,10 @@ describe('App Integration Tests', () => {
       expect(getUserStats).toHaveBeenCalled();
     });
 
-    it('should display quick start breathing patterns', () => {
+    it('should display breathing patterns on presets tab', () => {
       render(<App />);
 
-      expect(screen.getByText('Quick Start Breathing')).toBeInTheDocument();
+      expect(screen.getByText('Breathing Exercises')).toBeInTheDocument();
       expect(screen.getByText('Box Breathing')).toBeInTheDocument();
       expect(screen.getByText('Relaxing Breath')).toBeInTheDocument();
     });
@@ -107,28 +107,28 @@ describe('App Integration Tests', () => {
   });
 
   describe('tab navigation', () => {
-    it('should switch to breathing tab when clicked', () => {
+    it('should switch to custom tab when clicked', () => {
       render(<App />);
 
-      fireEvent.click(screen.getByText('Meditations'));
+      fireEvent.click(screen.getByText('Custom'));
 
-      expect(screen.getByText('Design Custom Pattern')).toBeInTheDocument();
-      expect(screen.getByText('Quick Presets')).toBeInTheDocument();
+      expect(screen.getByText('Create Custom Session')).toBeInTheDocument();
+      expect(screen.getByText('Design Custom Breathing Pattern')).toBeInTheDocument();
     });
 
-    it('should switch back to generator tab', () => {
+    it('should switch back to presets tab', () => {
       render(<App />);
 
-      fireEvent.click(screen.getByText('Meditations'));
-      fireEvent.click(screen.getByText('Session'));
+      fireEvent.click(screen.getByText('Custom'));
+      fireEvent.click(screen.getByText('Quick Start'));
 
-      expect(screen.getByText('Create Session')).toBeInTheDocument();
+      expect(screen.getByText('Guided Meditations')).toBeInTheDocument();
     });
 
-    it('should show custom breathing builder in breathing tab', () => {
+    it('should show custom breathing builder in custom tab', () => {
       render(<App />);
 
-      fireEvent.click(screen.getByText('Meditations'));
+      fireEvent.click(screen.getByText('Custom'));
 
       expect(screen.getByText('Inhale (s)')).toBeInTheDocument();
       expect(screen.getByText('Hold (s)')).toBeInTheDocument();
@@ -172,38 +172,35 @@ describe('App Integration Tests', () => {
   describe('configuration form', () => {
     it('should update duration slider', () => {
       render(<App />);
+      fireEvent.click(screen.getByText('Custom'));
 
-      const durationSlider = screen.getByRole('slider');
-      fireEvent.change(durationSlider, { target: { value: '7' } });
+      // Get all sliders and use the first one (from Custom Session builder)
+      const durationSliders = screen.getAllByRole('slider');
+      fireEvent.change(durationSliders[0], { target: { value: '7' } });
 
       expect(screen.getByText('7 min')).toBeInTheDocument();
     });
 
     it('should update technique select', () => {
       render(<App />);
+      fireEvent.click(screen.getByText('Custom'));
 
-      const techniqueSelect = screen.getByDisplayValue('Mindfulness');
-      fireEvent.change(techniqueSelect, { target: { value: 'Body Scan' } });
+      // Get the first technique select (from Custom Session builder)
+      const techniqueSelects = screen.getAllByDisplayValue('Mindfulness');
+      fireEvent.change(techniqueSelects[0], { target: { value: 'Body Scan' } });
 
-      expect(screen.getByDisplayValue('Body Scan')).toBeInTheDocument();
-    });
-
-    it('should update voice select', () => {
-      render(<App />);
-
-      const voiceSelect = screen.getByDisplayValue('Kore');
-      fireEvent.change(voiceSelect, { target: { value: 'Puck' } });
-
-      expect(screen.getByDisplayValue('Puck')).toBeInTheDocument();
+      expect(screen.getAllByDisplayValue('Body Scan').length).toBeGreaterThan(0);
     });
 
     it('should update soundscape select', () => {
       render(<App />);
+      fireEvent.click(screen.getByText('Custom'));
 
-      const soundscapeSelect = screen.getByDisplayValue('Ocean Waves');
-      fireEvent.change(soundscapeSelect, { target: { value: 'Soft Rain' } });
+      // Get the first soundscape select (from Custom Session builder)
+      const soundscapeSelects = screen.getAllByDisplayValue('Ocean Waves');
+      fireEvent.change(soundscapeSelects[0], { target: { value: 'Soft Rain' } });
 
-      expect(screen.getByDisplayValue('Soft Rain')).toBeInTheDocument();
+      expect(screen.getAllByDisplayValue('Soft Rain').length).toBeGreaterThan(0);
     });
   });
 
@@ -214,6 +211,7 @@ describe('App Integration Tests', () => {
       (getUserStats as any).mockReturnValue(statsWithPrefs);
 
       render(<App />);
+      fireEvent.click(screen.getByText('Custom'));
 
       expect(screen.getByText('7 min')).toBeInTheDocument();
     });

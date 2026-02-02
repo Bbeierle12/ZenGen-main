@@ -3,8 +3,8 @@ import { UserStats } from '../types';
 import { IconSparkles, IconUser } from './Icons';
 
 interface Props {
-  activeTab: 'generator' | 'breathing';
-  onTabChange: (tab: 'generator' | 'breathing') => void;
+  activeTab: 'custom' | 'presets';
+  onTabChange: (tab: 'custom' | 'presets') => void;
   stats: UserStats | null;
   onOpenProfile: () => void;
 }
@@ -26,24 +26,24 @@ export const Navbar: React.FC<Props> = ({ activeTab, onTabChange, stats, onOpenP
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <div className="flex items-center bg-slate-900/50 rounded-full p-1 border border-slate-800">
             <button
-            onClick={() => onTabChange('generator')}
+            onClick={() => onTabChange('presets')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === 'generator' 
-                ? 'bg-teal-600 text-white shadow-md' 
+                activeTab === 'presets'
+                ? 'bg-teal-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
             >
-            Session
+            Quick Start
             </button>
             <button
-            onClick={() => onTabChange('breathing')}
+            onClick={() => onTabChange('custom')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                activeTab === 'breathing' 
-                ? 'bg-teal-600 text-white shadow-md' 
+                activeTab === 'custom'
+                ? 'bg-teal-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
             >
-            Meditations
+            Custom
             </button>
         </div>
       </div>

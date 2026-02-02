@@ -265,14 +265,13 @@ describe('ProfileModal', () => {
       expect(mockUpdateUserPreferences).toHaveBeenCalledWith({ defaultDuration: 15 });
     });
 
-    it('should update default voice on select change', () => {
+    // Voice selection is disabled (TBA feature)
+    it('should have voice select disabled', () => {
       render(<ProfileModal {...defaultProps} />);
       fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
       const voiceSelect = screen.getByDisplayValue(VoiceName.Kore);
-      fireEvent.change(voiceSelect, { target: { value: VoiceName.Puck } });
-
-      expect(mockUpdateUserPreferences).toHaveBeenCalledWith({ defaultVoice: VoiceName.Puck });
+      expect(voiceSelect).toBeDisabled();
     });
 
     it('should update default soundscape on select change', () => {
