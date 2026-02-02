@@ -100,3 +100,17 @@ export interface BreathingPattern {
   color: string;
   icon: string;
 }
+
+// Meditation Preset Types
+export interface MeditationPreset {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  durationMinutes: number;
+  technique: MeditationTechnique;
+  soundscape: SoundscapeType;
+  guidanceLevel: GuidanceLevel;
+  isUserCreated?: boolean;
+}

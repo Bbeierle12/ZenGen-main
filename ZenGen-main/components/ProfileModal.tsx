@@ -255,12 +255,15 @@ export const ProfileModal: React.FC<Props> = ({ stats, onClose, onUpdate, onClea
                                          {Object.values(GuidanceLevel).map(v => <option key={v} value={v}>{v}</option>)}
                                      </select>
                                 </div>
-                                <div>
-                                     <label className="block text-sm text-slate-400 mb-2">Voice</label>
-                                     <select 
+                                <div className="opacity-60">
+                                     <label className="block text-sm text-slate-500 mb-2 flex items-center gap-2">
+                                        Voice
+                                        <span className="px-1.5 py-0.5 text-[9px] bg-amber-900/30 text-amber-500 rounded-full uppercase font-bold border border-amber-800/30">TBA</span>
+                                     </label>
+                                     <select
                                         value={stats.preferences.defaultVoice}
-                                        onChange={handleDefaultVoiceChange}
-                                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white text-sm focus:border-teal-500 outline-none"
+                                        disabled
+                                        className="w-full bg-slate-900/50 border border-slate-800/50 rounded-lg px-3 py-2 text-slate-500 text-sm cursor-not-allowed"
                                      >
                                          {Object.values(VoiceName).map(v => <option key={v} value={v}>{v}</option>)}
                                      </select>

@@ -7,9 +7,11 @@ import { ProfileModal } from './components/ProfileModal';
 import { Navbar } from './components/Navbar';
 import { Loader } from './components/Loader';
 import { ErrorBoundary, PlayerErrorBoundary } from './components/ErrorBoundary';
-import { MeditationConfig, SessionData, VoiceName, GenerationState, SoundscapeType, UserStats, BreathingPattern, BreathPhase, BreathPhaseType, MeditationTechnique, GuidanceLevel } from './types';
+import { MeditationConfig, SessionData, VoiceName, GenerationState, SoundscapeType, UserStats, BreathingPattern, BreathPhase, BreathPhaseType, MeditationTechnique, GuidanceLevel, MeditationPreset } from './types';
 import { IconSparkles, IconPlay } from './components/Icons';
-import { getUserStats, clearUserStats } from './services/storageService';
+import { getUserStats, clearUserStats, getUserPresets, saveUserPreset, deleteUserPreset } from './services/storageService';
+import { PresetCard } from './components/PresetCard';
+import { PresetBuilder } from './components/PresetBuilder';
 
 const BREATHING_PATTERNS: BreathingPattern[] = [
   {
@@ -59,6 +61,53 @@ const BREATHING_PATTERNS: BreathingPattern[] = [
       { label: 'Hold', duration: 5 },
       { label: 'Exhale', duration: 5 },
     ]
+  }
+];
+
+const MEDITATION_PRESETS: MeditationPreset[] = [
+  {
+    id: 'morning-focus',
+    name: 'Morning Focus',
+    description: 'Start your day with clarity and intention',
+    icon: '☀️',
+    color: 'from-orange-500 to-amber-600',
+    durationMinutes: 5,
+    technique: MeditationTechnique.MINDFULNESS,
+    soundscape: SoundscapeType.WIND,
+    guidanceLevel: GuidanceLevel.MEDIUM,
+  },
+  {
+    id: 'stress-relief',
+    name: 'Stress Relief',
+    description: 'Release tension and find calm',
+    icon: '🍃',
+    color: 'from-teal-500 to-emerald-600',
+    durationMinutes: 10,
+    technique: MeditationTechnique.BODY_SCAN,
+    soundscape: SoundscapeType.RAIN,
+    guidanceLevel: GuidanceLevel.HIGH,
+  },
+  {
+    id: 'sleep-prep',
+    name: 'Sleep Preparation',
+    description: 'Drift into peaceful, restful sleep',
+    icon: '🌙',
+    color: 'from-indigo-500 to-purple-600',
+    durationMinutes: 15,
+    technique: MeditationTechnique.SLEEP_INDUCTION,
+    soundscape: SoundscapeType.DRONE_LOW,
+    guidanceLevel: GuidanceLevel.LOW,
+  },
+  {
+    id: 'quick-reset',
+    name: 'Quick Reset',
+    description: 'A brief mindful pause for busy moments',
+    icon: '⚡',
+    color: 'from-cyan-500 to-blue-600',
+    durationMinutes: 3,
+    technique: MeditationTechnique.BREATH_WORK,
+    soundscape: SoundscapeType.BOWL,
+    guidanceLevel: GuidanceLevel.MEDIUM,
   }
 ];
 
@@ -123,13 +172,15 @@ function App() {
   const [activeBreathPattern, setActiveBreathPattern] = useState<BreathingPattern | null>(null);
   const [status, setStatus] = useState<GenerationState>({ step: 'idle', error: null });
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [userPresets, setUserPresets] = useState<MeditationPreset[]>([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Load stats and preferences on mount
   useEffect(() => {
     const loadedStats = getUserStats();
     setStats(loadedStats);
-    
+    setUserPresets(getUserPresets());
+
     // Apply defaults from preferences
     if (loadedStats.preferences) {
         setConfig(prev => ({
@@ -164,6 +215,63 @@ function App() {
       console.error(e);
       setStatus({ step: 'idle', error: e.message || "Something went wrong. Please try again." });
     }
+  };
+
+  const handleQuickStart = async () => {
+    if (!stats?.preferences) return;
+
+    const quickConfig: MeditationConfig = {
+      topic: 'Quick Meditation',
+      durationMinutes: stats.preferences.defaultDuration,
+      voice: stats.preferences.defaultVoice,
+      soundscape: stats.preferences.defaultSoundscape,
+      technique: stats.preferences.defaultTechnique,
+      guidanceLevel: stats.preferences.defaultGuidanceLevel
+    };
+
+    setConfig(quickConfig);
+
+    try {
+      const keyValid = await checkAndRequestApiKey();
+      if (!keyValid) {
+        setStatus({ step: 'idle', error: "API Key is required to generate sessions." });
+        return;
+      }
+
+      setStatus({ step: 'script', error: null });
+      const script = await generateMeditationScript(quickConfig);
+
+      setStatus({ step: 'audio', error: null });
+      const audioBuffer = await generateMeditationAudio(script, quickConfig.voice);
+
+      setSession({ script, audioBuffer, config: quickConfig });
+      setStatus({ step: 'complete', error: null });
+
+    } catch (e: any) {
+      console.error(e);
+      setStatus({ step: 'idle', error: e.message || "Something went wrong. Please try again." });
+    }
+  };
+
+  const handleSelectPreset = (preset: MeditationPreset) => {
+    setConfig(prev => ({
+      ...prev,
+      durationMinutes: preset.durationMinutes,
+      technique: preset.technique,
+      soundscape: preset.soundscape,
+      guidanceLevel: preset.guidanceLevel,
+    }));
+    setActiveTab('generator');
+  };
+
+  const handleSavePreset = (preset: Omit<MeditationPreset, 'id' | 'isUserCreated'>) => {
+    const updatedPresets = saveUserPreset(preset);
+    setUserPresets(updatedPresets);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    const updatedPresets = deleteUserPreset(id);
+    setUserPresets(updatedPresets);
   };
 
   const startCustomBreath = () => {
@@ -356,18 +464,22 @@ function App() {
                                 </select>
                             </div>
 
-                            {/* Voice Card */}
-                            <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition-colors">
-                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Voice Guide</label>
-                                <select 
+                            {/* Voice Card - INACTIVE */}
+                            <div className="bg-slate-900/50 border border-slate-800/50 p-5 rounded-2xl relative opacity-60">
+                                <div className="absolute top-2 right-2 px-2 py-0.5 bg-amber-900/30 text-amber-500 text-[10px] font-bold uppercase rounded-full border border-amber-800/30">
+                                    TBA
+                                </div>
+                                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Voice Guide</label>
+                                <select
                                 value={config.voice}
-                                onChange={(e) => setConfig({...config, voice: e.target.value as VoiceName})}
-                                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none appearance-none cursor-pointer"
+                                disabled
+                                className="w-full bg-slate-950/50 border border-slate-700/50 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed appearance-none"
                                 >
                                 {Object.values(VoiceName).map(v => (
                                     <option key={v} value={v}>{v}</option>
                                 ))}
                                 </select>
+                                <p className="text-xs text-slate-600 mt-2 italic">Coming soon</p>
                             </div>
 
                             {/* Soundscape Card */}
@@ -385,10 +497,22 @@ function App() {
                             </div>
                         </div>
 
-                        <button 
+                        {/* Quick Start Button */}
+                        <button
+                        onClick={handleQuickStart}
+                        disabled={status.step !== 'idle' || !stats?.preferences}
+                        className="w-full mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium py-3 rounded-xl shadow-lg shadow-purple-900/30 transition-all transform hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                        >
+                        <IconPlay className="w-5 h-5" />
+                        <span>Start Now</span>
+                        <span className="text-xs opacity-70">({stats?.preferences?.defaultDuration || 3} min)</span>
+                        </button>
+
+                        {/* Custom Meditation Button */}
+                        <button
                         onClick={handleGenerate}
                         disabled={status.step !== 'idle'}
-                        className="w-full mt-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold py-4 rounded-xl shadow-lg shadow-teal-900/50 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                        className="w-full mt-3 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold py-4 rounded-xl shadow-lg shadow-teal-900/50 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
                         >
                         <IconSparkles className="w-5 h-5" />
                         <span>Start Meditation</span>
@@ -444,18 +568,77 @@ function App() {
             </div>
           ) : (
             <div className="w-full animate-fade-in space-y-8">
-                {/* Custom Builder */}
+                {/* SECTION 1: Meditation Presets */}
+                <div>
+                    <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                        <span className="text-2xl">🧘</span>
+                        Meditation Presets
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[...MEDITATION_PRESETS, ...userPresets].map((preset) => (
+                            <PresetCard
+                                key={preset.id}
+                                preset={preset}
+                                onSelect={handleSelectPreset}
+                                onDelete={preset.isUserCreated ? handleDeletePreset : undefined}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* SECTION 2: Create Custom Preset */}
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-12 opacity-5 bg-gradient-to-bl from-teal-500 to-emerald-600 rounded-bl-[100px] pointer-events-none"></div>
+                    <h3 className="text-xl font-medium text-white mb-6 flex items-center gap-2">
+                        <span className="p-1.5 rounded-lg bg-teal-500/20 text-teal-400"><IconSparkles className="w-4 h-4" /></span>
+                        Create Custom Preset
+                    </h3>
+                    <PresetBuilder onSave={handleSavePreset} />
+                </div>
+
+                {/* SECTION 3: Breathing Exercises */}
+                <div>
+                    <h3 className="text-lg font-medium text-slate-400 mb-4">Breathing Exercises</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {BREATHING_PATTERNS.map((pattern) => (
+                            <button
+                                key={pattern.id}
+                                onClick={() => setActiveBreathPattern(pattern)}
+                                className="bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 rounded-2xl p-5 text-left transition-all hover:scale-[1.02] shadow-xl group relative overflow-hidden"
+                            >
+                                <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${pattern.color} rounded-bl-2xl`}>
+                                    <IconPlay className="w-8 h-8 text-white" />
+                                </div>
+                                <h4 className="text-lg font-medium text-white mb-1">{pattern.name}</h4>
+                                <p className="text-slate-400 text-sm mb-3">{pattern.description}</p>
+
+                                <div className="flex gap-2 flex-wrap">
+                                    {pattern.phases.map((phase, i) => (
+                                        <div key={i} className="flex flex-col items-center">
+                                            <div className="text-[9px] text-slate-500 uppercase">{phase.label}</div>
+                                            <div className="font-mono text-teal-400 font-bold text-sm">{phase.duration}s</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <PatternVisualizer phases={pattern.phases} />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* SECTION 4: Custom Breathing Builder */}
                 <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-12 opacity-5 bg-gradient-to-bl from-pink-500 to-rose-600 rounded-bl-[100px] pointer-events-none"></div>
                     <h3 className="text-xl font-medium text-white mb-6 flex items-center gap-2">
                         <span className="p-1.5 rounded-lg bg-pink-500/20 text-pink-400"><IconSparkles className="w-4 h-4" /></span>
-                        Design Custom Pattern
+                        Design Custom Breathing Pattern
                     </h3>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                             <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Inhale (s)</label>
-                            <input 
+                            <input
                                 type="number" min="1" max="60"
                                 value={customBreath.inhale}
                                 onChange={(e) => setCustomBreath({...customBreath, inhale: parseInt(e.target.value) || 0})}
@@ -464,7 +647,7 @@ function App() {
                         </div>
                         <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                             <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Hold (s)</label>
-                            <input 
+                            <input
                                 type="number" min="0" max="60"
                                 value={customBreath.hold1}
                                 onChange={(e) => setCustomBreath({...customBreath, hold1: parseInt(e.target.value) || 0})}
@@ -473,7 +656,7 @@ function App() {
                         </div>
                         <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
                             <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Exhale (s)</label>
-                            <input 
+                            <input
                                 type="number" min="1" max="60"
                                 value={customBreath.exhale}
                                 onChange={(e) => setCustomBreath({...customBreath, exhale: parseInt(e.target.value) || 0})}
@@ -482,7 +665,7 @@ function App() {
                         </div>
                         <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
                             <label className="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Sustain (s)</label>
-                            <input 
+                            <input
                                 type="number" min="0" max="60"
                                 value={customBreath.hold2}
                                 onChange={(e) => setCustomBreath({...customBreath, hold2: parseInt(e.target.value) || 0})}
@@ -496,44 +679,12 @@ function App() {
                         <PatternVisualizer phases={customPreviewPhases} />
                     </div>
 
-                    <button 
+                    <button
                         onClick={startCustomBreath}
                         className="w-full py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-900/30 transition-all transform hover:scale-[1.01]"
                     >
                         Start Custom Breath
                     </button>
-                </div>
-
-                {/* Presets Grid */}
-                <div>
-                    <h3 className="text-lg font-medium text-slate-400 mb-4">Quick Presets</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {BREATHING_PATTERNS.map((pattern) => (
-                            <button
-                                key={pattern.id}
-                                onClick={() => setActiveBreathPattern(pattern)}
-                                className="bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 rounded-2xl p-8 text-left transition-all hover:scale-[1.02] shadow-xl group relative overflow-hidden"
-                            >
-                                <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${pattern.color} rounded-bl-3xl`}>
-                                    <IconPlay className="w-12 h-12 text-white" />
-                                </div>
-                                <h3 className="text-xl font-medium text-white mb-1">{pattern.name}</h3>
-                                <p className="text-slate-400 text-sm mb-4">{pattern.description}</p>
-                                
-                                <div className="flex gap-2">
-                                    {pattern.phases.map((phase, i) => (
-                                        <div key={i} className="flex flex-col items-center">
-                                            <div className="text-xs text-slate-500 uppercase tracking-tighter text-[10px]">{phase.label}</div>
-                                            <div className="font-mono text-teal-400 font-bold">{phase.duration}s</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                {/* Visualizer for Preset */}
-                                <PatternVisualizer phases={pattern.phases} />
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
           )}

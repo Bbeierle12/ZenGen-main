@@ -1,4 +1,4 @@
-import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel } from "../types";
+import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel, MeditationPreset } from "../types";
 
 const STORAGE_KEY = 'zengen_user_stats';
 
@@ -243,4 +243,37 @@ export const importUserData = async (file: File): Promise<UserStats> => {
 
     reader.readAsText(file);
   });
+};
+
+// Meditation Presets Storage
+const PRESETS_KEY = 'zengen_user_presets';
+
+export const getUserPresets = (): MeditationPreset[] => {
+  try {
+    const stored = localStorage.getItem(PRESETS_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to load presets:", e);
+    return [];
+  }
+};
+
+export const saveUserPreset = (preset: Omit<MeditationPreset, 'id' | 'isUserCreated'>): MeditationPreset[] => {
+  const presets = getUserPresets();
+  const newPreset: MeditationPreset = {
+    ...preset,
+    id: `user-${Date.now()}`,
+    isUserCreated: true
+  };
+  const newPresets = [...presets, newPreset];
+  safeSetItem(PRESETS_KEY, JSON.stringify(newPresets));
+  return newPresets;
+};
+
+export const deleteUserPreset = (id: string): MeditationPreset[] => {
+  const presets = getUserPresets().filter(p => p.id !== id);
+  safeSetItem(PRESETS_KEY, JSON.stringify(presets));
+  return presets;
 };
