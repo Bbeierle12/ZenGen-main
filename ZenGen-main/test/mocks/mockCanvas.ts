@@ -1,0 +1,131 @@
+import { vi } from 'vitest';
+
+/**
+ * Create a mock Canvas 2D context
+ */
+export function mockCanvas(): CanvasRenderingContext2D {
+  const mockGradient = {
+    addColorStop: vi.fn(),
+  };
+
+  const mockPattern = {
+    setTransform: vi.fn(),
+  };
+
+  return {
+    // Canvas reference
+    canvas: {
+      width: 300,
+      height: 150,
+      clientWidth: 300,
+      clientHeight: 150,
+      getContext: vi.fn(),
+      toDataURL: vi.fn(() => 'data:image/png;base64,mock'),
+      toBlob: vi.fn((callback) => callback(new Blob())),
+    } as unknown as HTMLCanvasElement,
+
+    // State
+    fillStyle: '#000000',
+    strokeStyle: '#000000',
+    lineWidth: 1,
+    lineCap: 'butt' as CanvasLineCap,
+    lineJoin: 'miter' as CanvasLineJoin,
+    miterLimit: 10,
+    lineDashOffset: 0,
+    font: '10px sans-serif',
+    textAlign: 'start' as CanvasTextAlign,
+    textBaseline: 'alphabetic' as CanvasTextBaseline,
+    direction: 'ltr' as CanvasDirection,
+    globalAlpha: 1,
+    globalCompositeOperation: 'source-over' as GlobalCompositeOperation,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'low' as ImageSmoothingQuality,
+    shadowBlur: 0,
+    shadowColor: 'rgba(0, 0, 0, 0)',
+    shadowOffsetX: 0,
+    shadowOffsetY: 0,
+    filter: 'none',
+    letterSpacing: '0px',
+    fontKerning: 'auto' as CanvasFontKerning,
+    fontStretch: 'normal' as CanvasFontStretch,
+    fontVariantCaps: 'normal' as CanvasFontVariantCaps,
+    textRendering: 'auto' as CanvasTextRendering,
+    wordSpacing: '0px',
+
+    // Methods
+    arc: vi.fn(),
+    arcTo: vi.fn(),
+    beginPath: vi.fn(),
+    bezierCurveTo: vi.fn(),
+    clearRect: vi.fn(),
+    clip: vi.fn(),
+    closePath: vi.fn(),
+    createConicGradient: vi.fn(() => mockGradient as unknown as CanvasGradient),
+    createImageData: vi.fn((width: number, height: number) => ({
+      width,
+      height,
+      data: new Uint8ClampedArray(width * height * 4),
+      colorSpace: 'srgb',
+    })),
+    createLinearGradient: vi.fn(() => mockGradient as unknown as CanvasGradient),
+    createPattern: vi.fn(() => mockPattern as unknown as CanvasPattern),
+    createRadialGradient: vi.fn(() => mockGradient as unknown as CanvasGradient),
+    drawFocusIfNeeded: vi.fn(),
+    drawImage: vi.fn(),
+    ellipse: vi.fn(),
+    fill: vi.fn(),
+    fillRect: vi.fn(),
+    fillText: vi.fn(),
+    getContextAttributes: vi.fn(() => ({
+      alpha: true,
+      colorSpace: 'srgb',
+      desynchronized: false,
+      willReadFrequently: false,
+    })),
+    getImageData: vi.fn((x: number, y: number, width: number, height: number) => ({
+      width,
+      height,
+      data: new Uint8ClampedArray(width * height * 4),
+      colorSpace: 'srgb',
+    })),
+    getLineDash: vi.fn(() => []),
+    getTransform: vi.fn(() => new DOMMatrix()),
+    isContextLost: vi.fn(() => false),
+    isPointInPath: vi.fn(() => false),
+    isPointInStroke: vi.fn(() => false),
+    lineTo: vi.fn(),
+    measureText: vi.fn((text: string) => ({
+      width: text.length * 8,
+      actualBoundingBoxAscent: 10,
+      actualBoundingBoxDescent: 2,
+      actualBoundingBoxLeft: 0,
+      actualBoundingBoxRight: text.length * 8,
+      fontBoundingBoxAscent: 12,
+      fontBoundingBoxDescent: 3,
+      alphabeticBaseline: 0,
+      emHeightAscent: 10,
+      emHeightDescent: 2,
+      hangingBaseline: 8,
+      ideographicBaseline: -2,
+    })),
+    moveTo: vi.fn(),
+    putImageData: vi.fn(),
+    quadraticCurveTo: vi.fn(),
+    rect: vi.fn(),
+    reset: vi.fn(),
+    resetTransform: vi.fn(),
+    restore: vi.fn(),
+    rotate: vi.fn(),
+    roundRect: vi.fn(),
+    save: vi.fn(),
+    scale: vi.fn(),
+    scrollPathIntoView: vi.fn(),
+    setLineDash: vi.fn(),
+    setTransform: vi.fn(),
+    stroke: vi.fn(),
+    strokeRect: vi.fn(),
+    strokeText: vi.fn(),
+    transform: vi.fn(),
+    translate: vi.fn(),
+  } as unknown as CanvasRenderingContext2D;
+}

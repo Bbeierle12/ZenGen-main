@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { checkAndRequestApiKey } from '../services/geminiService';
+import { checkAndRequestApiKey } from '../services/claudeService';
 
 interface Props {
   onReady: () => void;

@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T12:02:24Z
-version: 1.0
+last_updated: 2026-02-02T20:47:02Z
+version: 1.1
 author: Claude Code PM System
 ---
 
@@ -91,7 +91,21 @@ State Update → Re-render
 
 ## Error Handling Pattern
 
-Errors are captured at the service layer and bubbled up:
+### Service Layer
+Errors are captured at the service layer with timeout handling:
+
+```typescript
+// Timeout wrapper for API calls
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Request timeout')), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+```
+
+### Component Layer
+Errors bubble up and are displayed to users:
 
 ```typescript
 try {
@@ -100,6 +114,15 @@ try {
 } catch (e: any) {
   setStatus({ step: 'idle', error: e.message || "Something went wrong." });
 }
+```
+
+### Error Boundaries
+React ErrorBoundary components catch rendering errors:
+
+```typescript
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <Component />
+</ErrorBoundary>
 ```
 
 ## Animation Pattern

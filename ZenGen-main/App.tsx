@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { checkAndRequestApiKey, generateMeditationAudio, generateMeditationScript } from './services/geminiService';
+import { checkAndRequestApiKey, generateMeditationAudio, generateMeditationScript } from './services/claudeService';
 import { ChatBot } from './components/ChatBot';
 import { SessionPlayer } from './components/SessionPlayer';
 import { BreathingPlayer } from './components/BreathingPlayer';

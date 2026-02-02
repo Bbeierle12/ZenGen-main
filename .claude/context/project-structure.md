@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T12:02:24Z
-version: 1.0
+last_updated: 2026-02-02T20:47:02Z
+version: 1.1
 author: Claude Code PM System
 ---
 
@@ -25,6 +25,7 @@ ZenGen-main/
 │   ├── ApiKeyGuard.tsx     # API key validation
 │   ├── BreathingPlayer.tsx # Breathing exercise UI
 │   ├── ChatBot.tsx         # AI chat assistant
+│   ├── ErrorBoundary.tsx   # Error boundary for graceful recovery
 │   ├── Icons.tsx           # SVG icon components
 │   ├── Loader.tsx          # Loading state component
 │   ├── Navbar.tsx          # Navigation bar
