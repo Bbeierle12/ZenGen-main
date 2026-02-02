@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T20:47:02Z
-version: 1.1
+last_updated: 2026-02-02T22:03:31Z
+version: 1.2
 author: Claude Code PM System
 ---
 
@@ -20,9 +20,10 @@ The application follows a **component-based architecture** with a clear separati
 Services encapsulate external integrations and complex logic:
 
 ```typescript
-// geminiService.ts - AI integration
+// claudeService.ts - AI integration (Anthropic Claude API)
 export const generateMeditationScript = async (config: MeditationConfig) => {...}
-export const generateMeditationAudio = async (text: string, voice: VoiceName) => {...}
+export const generateMeditationAudio = async (text: string, voice: VoiceName) => {...}  // Returns null, uses Web Speech fallback
+export const speakText = (text: string, voice: VoiceName, onEnd?: () => void) => {...}  // Web Speech API
 
 // storageService.ts - Data persistence
 export const getUserStats = (): UserStats => {...}
@@ -78,7 +79,7 @@ App.tsx (state management)
     ↓
 Service Layer (API calls, audio, storage)
     ↓
-External APIs (Gemini) / Browser APIs (Web Audio, localStorage)
+External APIs (Anthropic Claude) / Browser APIs (Web Audio, localStorage, Web Speech)
     ↓
 State Update → Re-render
 ```

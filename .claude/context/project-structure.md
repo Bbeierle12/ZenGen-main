@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T20:47:02Z
-version: 1.1
+last_updated: 2026-02-02T22:03:31Z
+version: 1.2
 author: Claude Code PM System
 ---
 
@@ -33,7 +33,7 @@ ZenGen-main/
 │   └── SessionPlayer.tsx   # Meditation player UI
 │
 ├── services/               # Business logic layer
-│   ├── geminiService.ts    # Gemini AI integration
+│   ├── claudeService.ts    # Anthropic Claude AI integration
 │   ├── soundscapeService.ts # Web Audio soundscapes
 │   ├── storageService.ts   # localStorage management
 │   └── audioUtils.ts       # Audio decoding utilities
@@ -55,7 +55,7 @@ ZenGen-main/
   - `BreathingPattern`, `BreathPhase`, `ChatMessage`, `GenerationState`
 
 ### Services
-- `geminiService.ts` - AI API calls for script/audio generation
+- `claudeService.ts` - Anthropic Claude API for script generation + Web Speech TTS fallback
 - `soundscapeService.ts` - `SoundscapeEngine` class for all audio
 - `storageService.ts` - User data CRUD operations
 - `audioUtils.ts` - Base64 decoding and audio buffer creation
@@ -70,7 +70,7 @@ ZenGen-main/
 ## File Naming Conventions
 
 - Components: PascalCase (`BreathingPlayer.tsx`)
-- Services: camelCase (`geminiService.ts`)
+- Services: camelCase (`claudeService.ts`)
 - Types: `types.ts` (single file)
 - Config files: lowercase (`package.json`, `tsconfig.json`)
 
