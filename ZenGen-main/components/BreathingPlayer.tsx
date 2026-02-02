@@ -80,7 +80,10 @@ export const BreathingPlayer: React.FC<Props> = ({ pattern, onClose }) => {
     }
   };
 
-  // Timer & Phase Logic
+  // Track if we need to trigger phase change (to avoid side effects in state updaters)
+  const shouldChangePhaseRef = useRef(false);
+
+  // Timer Logic - only updates state, no side effects
   useEffect(() => {
     if (isActive) {
       if (totalSeconds === 0) {
@@ -90,11 +93,12 @@ export const BreathingPlayer: React.FC<Props> = ({ pattern, onClose }) => {
 
       timerRef.current = window.setInterval(() => {
         setTotalSeconds(prev => prev + 1);
-        
+
         setTimeLeft(prev => {
           if (prev <= 1) {
-            handlePhaseChange();
-            return 0; // Will be overwritten by handlePhaseChange logic
+            // Flag that we need to change phase (don't call side effects here!)
+            shouldChangePhaseRef.current = true;
+            return 0;
           }
           return prev - 1;
         });
@@ -103,19 +107,28 @@ export const BreathingPlayer: React.FC<Props> = ({ pattern, onClose }) => {
       if (timerRef.current) clearInterval(timerRef.current);
       soundscapeRef.current?.stopBreathCue();
     }
-    return () => { 
-        if (timerRef.current) clearInterval(timerRef.current); 
+    return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, phaseIndex, bellEnabled, bellType, bellVolume, hapticsEnabled, breathSoundEnabled]); 
+  }, [isActive, phaseIndex, bellEnabled, bellType, bellVolume, hapticsEnabled, breathSoundEnabled, pattern.phases]);
+
+  // Handle phase change in a separate effect (safe for side effects)
+  useEffect(() => {
+    if (shouldChangePhaseRef.current && timeLeft === 0 && isActive) {
+      shouldChangePhaseRef.current = false;
+      handlePhaseChange();
+    }
+  }, [timeLeft, isActive]);
 
   const handlePhaseChange = () => {
     const nextIndex = (phaseIndex + 1) % pattern.phases.length;
-    setPhaseIndex(nextIndex);
     const nextDuration = pattern.phases[nextIndex].duration;
+    const nextPhaseLabel = pattern.phases[nextIndex].label;
+
+    // Update state
+    setPhaseIndex(nextIndex);
     setTimeLeft(nextDuration);
     phaseStartTimeRef.current = Date.now();
-    
-    const nextPhaseLabel = pattern.phases[nextIndex].label;
 
     if (audioContextRef.current?.state === 'suspended') {
         audioContextRef.current.resume();

@@ -3,9 +3,10 @@ import { SoundscapeType } from "../types";
 export class SoundscapeEngine {
   private ctx: AudioContext;
   private nodes: AudioNode[] = [];
+  private bellNodes: { osc: OscillatorNode; gain: GainNode }[] = []; // Track bell nodes for cleanup
   private masterGain: GainNode;
   private bellGain: GainNode;
-  
+
   // Breath sound nodes
   private breathGain: GainNode;
   public globalAnalyser: AnalyserNode; // Renamed to globalAnalyser
@@ -48,6 +49,7 @@ export class SoundscapeEngine {
 
   stop() {
     this.stopBreathCue();
+    this.stopBells();
     this.nodes.forEach(node => {
       try {
         if (node instanceof AudioScheduledSourceNode) {
@@ -57,6 +59,17 @@ export class SoundscapeEngine {
       } catch (e) { /* ignore */ }
     });
     this.nodes = [];
+  }
+
+  private stopBells() {
+    this.bellNodes.forEach(({ osc, gain }) => {
+      try {
+        osc.stop();
+        osc.disconnect();
+        gain.disconnect();
+      } catch (e) { /* ignore - may already be stopped */ }
+    });
+    this.bellNodes = [];
   }
 
   // --- Breath Cues ---
@@ -156,19 +169,35 @@ export class SoundscapeEngine {
   private playOscOneShot(freq: number, startTime: number, duration: number, peakGain: number) {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.value = freq;
-      
+
       gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.05); 
-      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration); 
-      
+      gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
       osc.connect(gain);
       gain.connect(this.bellGain);
-      
+
+      // Track the bell nodes for cleanup
+      const bellEntry = { osc, gain };
+      this.bellNodes.push(bellEntry);
+
       osc.start(startTime);
       osc.stop(startTime + duration + 0.1);
+
+      // Auto-cleanup when the oscillator ends
+      osc.onended = () => {
+        const index = this.bellNodes.indexOf(bellEntry);
+        if (index > -1) {
+          this.bellNodes.splice(index, 1);
+        }
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch (e) { /* ignore */ }
+      };
   }
 
   play(type: SoundscapeType) {

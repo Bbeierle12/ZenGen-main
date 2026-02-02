@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { checkAndRequestApiKey, generateMeditationAudio, generateMeditationScript } from './services/claudeService';
+import { checkAndRequestApiKey, generateMeditationAudio, generateMeditationScript } from './services/geminiService';
 import { ChatBot } from './components/ChatBot';
 import { SessionPlayer } from './components/SessionPlayer';
 import { BreathingPlayer } from './components/BreathingPlayer';
 import { ProfileModal } from './components/ProfileModal';
 import { Navbar } from './components/Navbar';
 import { Loader } from './components/Loader';
+import { ErrorBoundary, PlayerErrorBoundary } from './components/ErrorBoundary';
 import { MeditationConfig, SessionData, VoiceName, GenerationState, SoundscapeType, UserStats, BreathingPattern, BreathPhase, BreathPhaseType, MeditationTechnique, GuidanceLevel } from './types';
 import { IconSparkles, IconPlay } from './components/Icons';
 import { getUserStats, clearUserStats } from './services/storageService';
@@ -237,29 +238,44 @@ function App() {
       />
 
       {session && (
-        <SessionPlayer 
-          data={session} 
-          onReset={() => {
+        <PlayerErrorBoundary
+          componentName="Session Player"
+          onClose={() => {
             setSession(null);
             setStatus({ step: 'idle', error: null });
-          }} 
-        />
+          }}
+        >
+          <SessionPlayer
+            data={session}
+            onReset={() => {
+              setSession(null);
+              setStatus({ step: 'idle', error: null });
+            }}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {activeBreathPattern && (
-        <BreathingPlayer
-            pattern={activeBreathPattern}
-            onClose={() => setActiveBreathPattern(null)}
-        />
+        <PlayerErrorBoundary
+          componentName="Breathing Player"
+          onClose={() => setActiveBreathPattern(null)}
+        >
+          <BreathingPlayer
+              pattern={activeBreathPattern}
+              onClose={() => setActiveBreathPattern(null)}
+          />
+        </PlayerErrorBoundary>
       )}
 
       {isProfileOpen && stats && (
-          <ProfileModal 
-            stats={stats} 
-            onClose={() => setIsProfileOpen(false)} 
+        <ErrorBoundary>
+          <ProfileModal
+            stats={stats}
+            onClose={() => setIsProfileOpen(false)}
             onUpdate={handleProfileUpdate}
             onClearData={handleClearData}
           />
+        </ErrorBoundary>
       )}
       
       {!session && !activeBreathPattern && (
