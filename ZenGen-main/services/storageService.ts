@@ -1,4 +1,4 @@
-import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel, MeditationPreset, BreathingPattern } from "../types";
+import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel, MeditationPreset, BreathingPattern, TimerSession, MoodEntry, JournalEntry } from "../types";
 
 const STORAGE_KEY = 'zengen_user_stats';
 
@@ -308,4 +308,212 @@ export const deleteCustomBreathingPattern = (id: string): BreathingPattern[] => 
   const patterns = getCustomBreathingPatterns().filter(p => p.id !== id);
   safeSetItem(BREATHING_KEY, JSON.stringify(patterns));
   return patterns;
+};
+
+// Timer History Storage
+const TIMER_KEY = 'zengen_timer_history';
+
+export const getTimerHistory = (): TimerSession[] => {
+  try {
+    const stored = localStorage.getItem(TIMER_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to load timer history:", e);
+    return [];
+  }
+};
+
+export const saveTimerSession = (session: Omit<TimerSession, 'id' | 'date' | 'timestamp'>): TimerSession[] => {
+  const history = getTimerHistory();
+  const now = new Date();
+
+  const newSession: TimerSession = {
+    ...session,
+    id: `timer-${Date.now()}`,
+    date: now.toISOString(),
+    timestamp: now.getTime(),
+  };
+
+  const newHistory = [newSession, ...history].slice(0, 100); // Keep last 100
+  safeSetItem(TIMER_KEY, JSON.stringify(newHistory));
+
+  // Also update user stats if session was completed
+  if (session.completed && session.completedSeconds >= 60) {
+    const stats = getUserStats();
+    const durationMinutes = Math.round(session.completedSeconds / 60);
+
+    const updatedStats: UserStats = {
+      ...stats,
+      totalSessions: stats.totalSessions + 1,
+      totalMinutes: stats.totalMinutes + durationMinutes,
+      history: [
+        {
+          id: newSession.id,
+          date: newSession.date,
+          topic: 'Timer Session',
+          duration: durationMinutes,
+        },
+        ...stats.history,
+      ].slice(0, 500),
+    };
+
+    // Update streak
+    const todayStr = getLocalDateString(now);
+    if (stats.lastSessionDate) {
+      const lastDate = new Date(stats.lastSessionDate);
+      const lastDateStr = getLocalDateString(lastDate);
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = getLocalDateString(yesterday);
+
+      if (lastDateStr === todayStr) {
+        // Already meditated today
+      } else if (lastDateStr === yesterdayStr) {
+        updatedStats.currentStreak += 1;
+      } else {
+        updatedStats.currentStreak = 1;
+      }
+    } else {
+      updatedStats.currentStreak = 1;
+    }
+    updatedStats.lastSessionDate = now.toISOString();
+
+    safeSetItem(STORAGE_KEY, JSON.stringify(updatedStats));
+  }
+
+  return newHistory;
+};
+
+export const clearTimerHistory = (): void => {
+  try {
+    localStorage.removeItem(TIMER_KEY);
+  } catch (e) {
+    console.error("Failed to clear timer history:", e);
+  }
+};
+
+// ============================================================================
+// Mood Entry Storage
+// ============================================================================
+
+const MOOD_KEY = 'zengen_mood_entries';
+
+export const getMoodEntries = (): MoodEntry[] => {
+  try {
+    const stored = localStorage.getItem(MOOD_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to load mood entries:", e);
+    return [];
+  }
+};
+
+export const saveMoodEntry = (entry: Omit<MoodEntry, 'id' | 'date' | 'timestamp'>): MoodEntry[] => {
+  const entries = getMoodEntries();
+  const now = new Date();
+
+  const newEntry: MoodEntry = {
+    ...entry,
+    id: `mood-${Date.now()}`,
+    date: now.toISOString(),
+    timestamp: now.getTime(),
+  };
+
+  const newEntries = [newEntry, ...entries].slice(0, 500); // Keep last 500
+  safeSetItem(MOOD_KEY, JSON.stringify(newEntries));
+
+  return newEntries;
+};
+
+export const updateMoodEntry = (id: string, updates: Partial<MoodEntry>): MoodEntry[] => {
+  const entries = getMoodEntries();
+  const index = entries.findIndex(e => e.id === id);
+
+  if (index === -1) return entries;
+
+  entries[index] = { ...entries[index], ...updates };
+  safeSetItem(MOOD_KEY, JSON.stringify(entries));
+
+  return entries;
+};
+
+export const deleteMoodEntry = (id: string): MoodEntry[] => {
+  const entries = getMoodEntries();
+  const newEntries = entries.filter(e => e.id !== id);
+  safeSetItem(MOOD_KEY, JSON.stringify(newEntries));
+  return newEntries;
+};
+
+export const clearMoodEntries = (): void => {
+  try {
+    localStorage.removeItem(MOOD_KEY);
+  } catch (e) {
+    console.error("Failed to clear mood entries:", e);
+  }
+};
+
+// ============================================================================
+// Journal Entry Storage
+// ============================================================================
+
+const JOURNAL_KEY = 'zengen_journal_entries';
+
+export const getJournalEntries = (): JournalEntry[] => {
+  try {
+    const stored = localStorage.getItem(JOURNAL_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to load journal entries:", e);
+    return [];
+  }
+};
+
+export const saveJournalEntry = (entry: Omit<JournalEntry, 'id' | 'date' | 'timestamp'>): JournalEntry[] => {
+  const entries = getJournalEntries();
+  const now = new Date();
+
+  const newEntry: JournalEntry = {
+    ...entry,
+    id: `journal-${Date.now()}`,
+    date: now.toISOString(),
+    timestamp: now.getTime(),
+  };
+
+  const newEntries = [newEntry, ...entries].slice(0, 500); // Keep last 500
+  safeSetItem(JOURNAL_KEY, JSON.stringify(newEntries));
+
+  return newEntries;
+};
+
+export const updateJournalEntry = (id: string, updates: Partial<JournalEntry>): JournalEntry[] => {
+  const entries = getJournalEntries();
+  const index = entries.findIndex(e => e.id === id);
+
+  if (index === -1) return entries;
+
+  entries[index] = { ...entries[index], ...updates };
+  safeSetItem(JOURNAL_KEY, JSON.stringify(entries));
+
+  return entries;
+};
+
+export const deleteJournalEntry = (id: string): JournalEntry[] => {
+  const entries = getJournalEntries();
+  const newEntries = entries.filter(e => e.id !== id);
+  safeSetItem(JOURNAL_KEY, JSON.stringify(newEntries));
+  return newEntries;
+};
+
+export const clearJournalEntries = (): void => {
+  try {
+    localStorage.removeItem(JOURNAL_KEY);
+  } catch (e) {
+    console.error("Failed to clear journal entries:", e);
+  }
 };

@@ -65,6 +65,21 @@ beforeAll(() => {
   // Mock window.confirm
   window.confirm = vi.fn(() => true);
 
+  // Mock window.matchMedia for responsive hooks
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false, // Default to desktop view (not mobile)
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+
   // Mock navigator.vibrate
   Object.defineProperty(navigator, 'vibrate', {
     value: vi.fn(() => true),

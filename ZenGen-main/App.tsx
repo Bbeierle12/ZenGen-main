@@ -4,7 +4,6 @@ import { ChatBot } from './components/ChatBot';
 import { SessionPlayer } from './components/SessionPlayer';
 import { BreathingPlayer } from './components/BreathingPlayer';
 import { ProfileModal } from './components/ProfileModal';
-import { Navbar } from './components/Navbar';
 import { Loader } from './components/Loader';
 import { ErrorBoundary, PlayerErrorBoundary } from './components/ErrorBoundary';
 import { MeditationConfig, SessionData, VoiceName, GenerationState, SoundscapeType, UserStats, BreathingPattern, BreathPhase, BreathPhaseType, MeditationTechnique, GuidanceLevel, MeditationPreset } from './types';
@@ -12,6 +11,9 @@ import { IconSparkles, IconPlay } from './components/Icons';
 import { getUserStats, clearUserStats, getUserPresets, saveUserPreset, deleteUserPreset, getCustomBreathingPatterns, saveCustomBreathingPattern, deleteCustomBreathingPattern } from './services/storageService';
 import { PresetCard } from './components/PresetCard';
 import { PresetBuilder } from './components/PresetBuilder';
+import { NavProvider, useNav } from './contexts/NavContext';
+import { AppLayout } from './components/layout';
+import { TimerPage } from './pages/meditations/TimerPage';
 
 const BREATHING_PATTERNS: BreathingPattern[] = [
   {
@@ -147,9 +149,11 @@ const PatternVisualizer = ({ phases }: { phases: { label: string, duration: numb
   );
 };
 
-function App() {
-  const [activeTab, setActiveTab] = useState<'custom' | 'presets'>('presets');
-  
+function MeditationContent() {
+  // Get navigation context for tab switching
+  const { activeTab, setActiveTab, state } = useNav();
+  const currentPage = state.page;
+
   // Initialize with defaults, will be overwritten by effect
   const [config, setConfig] = useState<MeditationConfig>({
     topic: 'Relieving Anxiety',
@@ -366,20 +370,7 @@ function App() {
   ].filter(p => p.duration > 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-teal-500/30 pb-20">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-teal-900/10 rounded-full blur-[120px] animate-pulse-slow" />
-        <div className="absolute top-[40%] -right-[10%] w-[60%] h-[60%] bg-purple-900/10 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
-      </div>
-
-      <Navbar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        stats={stats} 
-        onOpenProfile={() => setIsProfileOpen(true)}
-      />
-
+    <AppLayout stats={stats} onOpenProfile={() => setIsProfileOpen(true)}>
       {session && (
         <PlayerErrorBoundary
           componentName="Session Player"
@@ -423,8 +414,11 @@ function App() {
       
       {!session && !activeBreathPattern && (
         <div className="relative z-10 container mx-auto px-4 pt-24 pb-8 flex flex-col items-center max-w-5xl">
-          
-          {activeTab === 'presets' ? (
+
+          {currentPage === 'timer' ? (
+            /* ========== TIMER TAB ========== */
+            <TimerPage />
+          ) : activeTab === 'presets' ? (
             /* ========== PRESETS TAB - Ready-to-go meditations ========== */
             <div className="w-full animate-fade-in space-y-8">
                 {/* SECTION 1: Meditation Presets */}
@@ -712,7 +706,16 @@ function App() {
       )}
       
       {!session && !activeBreathPattern && <ChatBot />}
-    </div>
+    </AppLayout>
+  );
+}
+
+// Main App component with NavProvider wrapper
+function App() {
+  return (
+    <NavProvider>
+      <MeditationContent />
+    </NavProvider>
   );
 }
 

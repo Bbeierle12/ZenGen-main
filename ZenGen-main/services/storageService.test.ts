@@ -7,6 +7,19 @@ import {
   saveSessionCompletion,
   exportUserData,
   importUserData,
+  getTimerHistory,
+  saveTimerSession,
+  clearTimerHistory,
+  getMoodEntries,
+  saveMoodEntry,
+  updateMoodEntry,
+  deleteMoodEntry,
+  clearMoodEntries,
+  getJournalEntries,
+  saveJournalEntry,
+  updateJournalEntry,
+  deleteJournalEntry,
+  clearJournalEntries,
 } from './storageService';
 import {
   createMockUserStats,
@@ -484,6 +497,402 @@ describe('storageService', () => {
       expect(imported.totalMinutes).toBe(500);
       expect(imported.currentStreak).toBe(7);
       vi.useFakeTimers();
+    });
+  });
+
+  describe('Timer storage', () => {
+    describe('getTimerHistory', () => {
+      it('should return empty array when storage is empty', () => {
+        const history = getTimerHistory();
+        expect(history).toEqual([]);
+      });
+
+      it('should return stored timer sessions', () => {
+        const sessions = [
+          { id: 'timer-1', date: '2024-01-01T10:00:00Z', durationSeconds: 300, completedSeconds: 300, completed: true, timestamp: 1704103200000 },
+          { id: 'timer-2', date: '2024-01-02T10:00:00Z', durationSeconds: 600, completedSeconds: 450, completed: false, timestamp: 1704189600000 },
+        ];
+        localStorage.setItem('zengen_timer_history', JSON.stringify(sessions));
+
+        const history = getTimerHistory();
+
+        expect(history).toHaveLength(2);
+        expect(history[0].id).toBe('timer-1');
+        expect(history[1].durationSeconds).toBe(600);
+      });
+
+      it('should return empty array when JSON is corrupted', () => {
+        localStorage.setItem('zengen_timer_history', '{ invalid json }}}');
+
+        const history = getTimerHistory();
+
+        expect(history).toEqual([]);
+      });
+
+      it('should return empty array when stored value is not an array', () => {
+        localStorage.setItem('zengen_timer_history', JSON.stringify({ not: 'array' }));
+
+        const history = getTimerHistory();
+
+        expect(history).toEqual([]);
+      });
+    });
+
+    describe('saveTimerSession', () => {
+      it('should save a timer session and return updated history', () => {
+        const result = saveTimerSession({
+          durationSeconds: 300,
+          completedSeconds: 300,
+          completed: true,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].durationSeconds).toBe(300);
+        expect(result[0].completedSeconds).toBe(300);
+        expect(result[0].completed).toBe(true);
+        expect(result[0].id).toMatch(/^timer-\d+$/);
+        expect(result[0].date).toBeDefined();
+        expect(result[0].timestamp).toBeDefined();
+      });
+
+      it('should prepend new session to existing history', () => {
+        const existingSessions = [
+          { id: 'timer-1', date: '2024-01-01T10:00:00Z', durationSeconds: 300, completedSeconds: 300, completed: true, timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_timer_history', JSON.stringify(existingSessions));
+
+        const result = saveTimerSession({
+          durationSeconds: 600,
+          completedSeconds: 600,
+          completed: true,
+        });
+
+        expect(result).toHaveLength(2);
+        expect(result[0].durationSeconds).toBe(600); // New session first
+        expect(result[1].durationSeconds).toBe(300); // Old session second
+      });
+
+      it('should limit history to 100 entries', () => {
+        const existingSessions = Array.from({ length: 100 }, (_, i) => ({
+          id: `timer-${i}`,
+          date: '2024-01-01T10:00:00Z',
+          durationSeconds: 300,
+          completedSeconds: 300,
+          completed: true,
+          timestamp: 1704103200000 + i,
+        }));
+        localStorage.setItem('zengen_timer_history', JSON.stringify(existingSessions));
+
+        const result = saveTimerSession({
+          durationSeconds: 600,
+          completedSeconds: 600,
+          completed: true,
+        });
+
+        expect(result).toHaveLength(100);
+        expect(result[0].durationSeconds).toBe(600); // New session
+      });
+
+      it('should update user stats when session is completed and >= 60 seconds', () => {
+        const result = saveTimerSession({
+          durationSeconds: 120,
+          completedSeconds: 120,
+          completed: true,
+        });
+
+        const stats = getUserStats();
+        expect(stats.totalSessions).toBe(1);
+        expect(stats.totalMinutes).toBe(2); // 120 seconds = 2 minutes
+        expect(stats.history).toHaveLength(1);
+        expect(stats.history[0].topic).toBe('Timer Session');
+      });
+
+      it('should not update user stats when session is incomplete', () => {
+        saveTimerSession({
+          durationSeconds: 300,
+          completedSeconds: 150,
+          completed: false,
+        });
+
+        const stats = getUserStats();
+        expect(stats.totalSessions).toBe(0);
+        expect(stats.totalMinutes).toBe(0);
+      });
+
+      it('should not update user stats when completed session is < 60 seconds', () => {
+        saveTimerSession({
+          durationSeconds: 30,
+          completedSeconds: 30,
+          completed: true,
+        });
+
+        const stats = getUserStats();
+        expect(stats.totalSessions).toBe(0);
+        expect(stats.totalMinutes).toBe(0);
+      });
+
+      it('should persist history to localStorage', () => {
+        saveTimerSession({
+          durationSeconds: 300,
+          completedSeconds: 300,
+          completed: true,
+        });
+
+        const stored = JSON.parse(localStorage.getItem('zengen_timer_history')!);
+        expect(stored).toHaveLength(1);
+        expect(stored[0].durationSeconds).toBe(300);
+      });
+    });
+
+    describe('clearTimerHistory', () => {
+      it('should clear timer history from localStorage', () => {
+        localStorage.setItem('zengen_timer_history', JSON.stringify([{ id: 'test' }]));
+
+        clearTimerHistory();
+
+        expect(localStorage.getItem('zengen_timer_history')).toBeNull();
+      });
+
+      it('should not throw when history is already empty', () => {
+        expect(() => clearTimerHistory()).not.toThrow();
+      });
+    });
+  });
+
+  describe('Mood entry storage', () => {
+    describe('getMoodEntries', () => {
+      it('should return empty array when storage is empty', () => {
+        const entries = getMoodEntries();
+        expect(entries).toEqual([]);
+      });
+
+      it('should return stored mood entries', () => {
+        const entries = [
+          { id: 'mood-1', date: '2024-01-01T10:00:00Z', moodBefore: 3, moodAfter: 4, timestamp: 1704103200000 },
+          { id: 'mood-2', date: '2024-01-02T10:00:00Z', moodBefore: 2, moodAfter: 5, notes: 'Felt great', timestamp: 1704189600000 },
+        ];
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(entries));
+
+        const result = getMoodEntries();
+
+        expect(result).toHaveLength(2);
+        expect(result[0].id).toBe('mood-1');
+        expect(result[1].notes).toBe('Felt great');
+      });
+
+      it('should return empty array when JSON is corrupted', () => {
+        localStorage.setItem('zengen_mood_entries', '{ invalid json }}}');
+
+        const entries = getMoodEntries();
+
+        expect(entries).toEqual([]);
+      });
+    });
+
+    describe('saveMoodEntry', () => {
+      it('should save a mood entry and return updated entries', () => {
+        const result = saveMoodEntry({
+          moodBefore: 2,
+          moodAfter: 4,
+          notes: 'Test note',
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].moodBefore).toBe(2);
+        expect(result[0].moodAfter).toBe(4);
+        expect(result[0].notes).toBe('Test note');
+        expect(result[0].id).toMatch(/^mood-\d+$/);
+      });
+
+      it('should prepend new entry to existing entries', () => {
+        const existingEntries = [
+          { id: 'mood-1', date: '2024-01-01T10:00:00Z', moodBefore: 3, moodAfter: 4, timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(existingEntries));
+
+        const result = saveMoodEntry({
+          moodBefore: 1,
+          moodAfter: 5,
+        });
+
+        expect(result).toHaveLength(2);
+        expect(result[0].moodBefore).toBe(1); // New entry first
+        expect(result[1].moodBefore).toBe(3); // Old entry second
+      });
+
+      it('should limit entries to 500', () => {
+        const existingEntries = Array.from({ length: 500 }, (_, i) => ({
+          id: `mood-${i}`,
+          date: '2024-01-01T10:00:00Z',
+          moodBefore: 3,
+          moodAfter: 4,
+          timestamp: 1704103200000 + i,
+        }));
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(existingEntries));
+
+        const result = saveMoodEntry({
+          moodBefore: 1,
+          moodAfter: 5,
+        });
+
+        expect(result).toHaveLength(500);
+        expect(result[0].moodBefore).toBe(1); // New entry
+      });
+    });
+
+    describe('updateMoodEntry', () => {
+      it('should update an existing mood entry', () => {
+        const entries = [
+          { id: 'mood-1', date: '2024-01-01T10:00:00Z', moodBefore: 3, moodAfter: 4, timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(entries));
+
+        const result = updateMoodEntry('mood-1', { notes: 'Updated note', moodAfter: 5 });
+
+        expect(result[0].notes).toBe('Updated note');
+        expect(result[0].moodAfter).toBe(5);
+        expect(result[0].moodBefore).toBe(3); // Unchanged
+      });
+
+      it('should return unchanged entries when id not found', () => {
+        const entries = [
+          { id: 'mood-1', date: '2024-01-01T10:00:00Z', moodBefore: 3, moodAfter: 4, timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(entries));
+
+        const result = updateMoodEntry('mood-999', { notes: 'Test' });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].notes).toBeUndefined();
+      });
+    });
+
+    describe('deleteMoodEntry', () => {
+      it('should delete a mood entry by id', () => {
+        const entries = [
+          { id: 'mood-1', date: '2024-01-01T10:00:00Z', moodBefore: 3, moodAfter: 4, timestamp: 1704103200000 },
+          { id: 'mood-2', date: '2024-01-02T10:00:00Z', moodBefore: 2, moodAfter: 5, timestamp: 1704189600000 },
+        ];
+        localStorage.setItem('zengen_mood_entries', JSON.stringify(entries));
+
+        const result = deleteMoodEntry('mood-1');
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('mood-2');
+      });
+    });
+
+    describe('clearMoodEntries', () => {
+      it('should clear all mood entries', () => {
+        localStorage.setItem('zengen_mood_entries', JSON.stringify([{ id: 'test' }]));
+
+        clearMoodEntries();
+
+        expect(localStorage.getItem('zengen_mood_entries')).toBeNull();
+      });
+    });
+  });
+
+  describe('Journal entry storage', () => {
+    describe('getJournalEntries', () => {
+      it('should return empty array when storage is empty', () => {
+        const entries = getJournalEntries();
+        expect(entries).toEqual([]);
+      });
+
+      it('should return stored journal entries', () => {
+        const entries = [
+          { id: 'journal-1', date: '2024-01-01T10:00:00Z', title: 'Day 1', content: 'My first entry', tags: ['meditation'], timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_journal_entries', JSON.stringify(entries));
+
+        const result = getJournalEntries();
+
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('Day 1');
+        expect(result[0].tags).toContain('meditation');
+      });
+
+      it('should return empty array when JSON is corrupted', () => {
+        localStorage.setItem('zengen_journal_entries', '{ invalid }}}');
+
+        const entries = getJournalEntries();
+
+        expect(entries).toEqual([]);
+      });
+    });
+
+    describe('saveJournalEntry', () => {
+      it('should save a journal entry and return updated entries', () => {
+        const result = saveJournalEntry({
+          title: 'My Entry',
+          content: 'Today was great',
+          tags: ['mindfulness', 'gratitude'],
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].title).toBe('My Entry');
+        expect(result[0].content).toBe('Today was great');
+        expect(result[0].tags).toContain('mindfulness');
+        expect(result[0].id).toMatch(/^journal-\d+$/);
+      });
+
+      it('should prepend new entry to existing entries', () => {
+        const existingEntries = [
+          { id: 'journal-1', date: '2024-01-01T10:00:00Z', title: 'Old', content: 'Old content', tags: [], timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_journal_entries', JSON.stringify(existingEntries));
+
+        const result = saveJournalEntry({
+          title: 'New',
+          content: 'New content',
+          tags: [],
+        });
+
+        expect(result).toHaveLength(2);
+        expect(result[0].title).toBe('New'); // New entry first
+        expect(result[1].title).toBe('Old'); // Old entry second
+      });
+    });
+
+    describe('updateJournalEntry', () => {
+      it('should update an existing journal entry', () => {
+        const entries = [
+          { id: 'journal-1', date: '2024-01-01T10:00:00Z', title: 'Original', content: 'Content', tags: [], timestamp: 1704103200000 },
+        ];
+        localStorage.setItem('zengen_journal_entries', JSON.stringify(entries));
+
+        const result = updateJournalEntry('journal-1', { title: 'Updated Title', tags: ['new-tag'] });
+
+        expect(result[0].title).toBe('Updated Title');
+        expect(result[0].tags).toContain('new-tag');
+        expect(result[0].content).toBe('Content'); // Unchanged
+      });
+    });
+
+    describe('deleteJournalEntry', () => {
+      it('should delete a journal entry by id', () => {
+        const entries = [
+          { id: 'journal-1', date: '2024-01-01T10:00:00Z', title: 'Entry 1', content: '', tags: [], timestamp: 1704103200000 },
+          { id: 'journal-2', date: '2024-01-02T10:00:00Z', title: 'Entry 2', content: '', tags: [], timestamp: 1704189600000 },
+        ];
+        localStorage.setItem('zengen_journal_entries', JSON.stringify(entries));
+
+        const result = deleteJournalEntry('journal-1');
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('journal-2');
+      });
+    });
+
+    describe('clearJournalEntries', () => {
+      it('should clear all journal entries', () => {
+        localStorage.setItem('zengen_journal_entries', JSON.stringify([{ id: 'test' }]));
+
+        clearJournalEntries();
+
+        expect(localStorage.getItem('zengen_journal_entries')).toBeNull();
+      });
     });
   });
 });

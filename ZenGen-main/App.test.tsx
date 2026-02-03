@@ -165,7 +165,15 @@ describe('App Integration Tests', () => {
         fireEvent.click(profileButton);
       }
 
-      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      // Find the Settings tab button within the profile modal (exclude sidebar Settings nav item)
+      const settingsButtons = screen.getAllByRole('button', { name: 'Settings' });
+      // The profile modal Settings tab is the one that appears after opening the profile
+      const settingsTabButton = settingsButtons.find(btn =>
+        btn.closest('[role="dialog"]') || btn.closest('.fixed.inset-0')
+      );
+      if (settingsTabButton) {
+        fireEvent.click(settingsTabButton);
+      }
       fireEvent.click(screen.getByText('Reset Everything'));
 
       expect(clearUserStats).toHaveBeenCalled();

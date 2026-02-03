@@ -114,3 +114,76 @@ export interface MeditationPreset {
   guidanceLevel: GuidanceLevel;
   isUserCreated?: boolean;
 }
+
+// Navigation Types
+export type NavSectionId = 'meditations' | 'journal' | 'progress' | 'learn' | 'settings';
+export type NavPageId =
+  | 'presets' | 'custom' | 'breathing' | 'timer'
+  | 'entries' | 'calendar' | 'mood-log' | 'insights'
+  | 'overview' | 'stats' | 'achievements'
+  | 'articles' | 'techniques' | 'tips'
+  | 'profile' | 'preferences' | 'data';
+
+export interface NavState {
+  section: NavSectionId;
+  page: NavPageId | null;
+  sidebarExpanded: boolean;
+  isMobile: boolean;
+}
+
+export interface NavItem {
+  id: NavSectionId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  defaultPage?: NavPageId;
+}
+
+// Timer Types
+export interface TimerConfig {
+  durationSeconds: number;
+  bellAtStart: boolean;
+  bellAtEnd: boolean;
+  intervalBellSeconds: number; // 0 = none, or seconds between bells
+  ambientSound: SoundscapeType;
+}
+
+export interface TimerSession {
+  id: string;
+  date: string; // ISO date string
+  durationSeconds: number;
+  completedSeconds: number;
+  completed: boolean;
+  timestamp: number;
+}
+
+export type TimerState = 'idle' | 'running' | 'paused' | 'complete';
+
+// Mood Types
+export enum MoodLevel {
+  VERY_LOW = 1,
+  LOW = 2,
+  NEUTRAL = 3,
+  GOOD = 4,
+  EXCELLENT = 5,
+}
+
+export interface MoodEntry {
+  id: string;
+  sessionId?: string; // Optional link to meditation session
+  date: string; // ISO date string
+  moodBefore?: MoodLevel;
+  moodAfter?: MoodLevel;
+  notes?: string;
+  timestamp: number;
+}
+
+export interface JournalEntry {
+  id: string;
+  date: string; // ISO date string
+  title: string;
+  content: string;
+  moodId?: string; // Optional link to mood entry
+  sessionId?: string; // Optional link to meditation session
+  tags: string[];
+  timestamp: number;
+}
