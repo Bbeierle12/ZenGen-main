@@ -1,4 +1,4 @@
-import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel, MeditationPreset } from "../types";
+import { UserStats, SessionData, UserPreferences, VoiceName, SoundscapeType, MeditationTechnique, GuidanceLevel, MeditationPreset, BreathingPattern } from "../types";
 
 const STORAGE_KEY = 'zengen_user_stats';
 
@@ -276,4 +276,36 @@ export const deleteUserPreset = (id: string): MeditationPreset[] => {
   const presets = getUserPresets().filter(p => p.id !== id);
   safeSetItem(PRESETS_KEY, JSON.stringify(presets));
   return presets;
+};
+
+// Custom Breathing Patterns Storage
+const BREATHING_KEY = 'zengen_custom_breathing';
+
+export const getCustomBreathingPatterns = (): BreathingPattern[] => {
+  try {
+    const stored = localStorage.getItem(BREATHING_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to load custom breathing patterns:", e);
+    return [];
+  }
+};
+
+export const saveCustomBreathingPattern = (pattern: Omit<BreathingPattern, 'id'>): BreathingPattern[] => {
+  const patterns = getCustomBreathingPatterns();
+  const newPattern: BreathingPattern = {
+    ...pattern,
+    id: `custom-${Date.now()}`
+  };
+  const newPatterns = [...patterns, newPattern];
+  safeSetItem(BREATHING_KEY, JSON.stringify(newPatterns));
+  return newPatterns;
+};
+
+export const deleteCustomBreathingPattern = (id: string): BreathingPattern[] => {
+  const patterns = getCustomBreathingPatterns().filter(p => p.id !== id);
+  safeSetItem(BREATHING_KEY, JSON.stringify(patterns));
+  return patterns;
 };

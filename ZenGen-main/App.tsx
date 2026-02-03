@@ -9,7 +9,7 @@ import { Loader } from './components/Loader';
 import { ErrorBoundary, PlayerErrorBoundary } from './components/ErrorBoundary';
 import { MeditationConfig, SessionData, VoiceName, GenerationState, SoundscapeType, UserStats, BreathingPattern, BreathPhase, BreathPhaseType, MeditationTechnique, GuidanceLevel, MeditationPreset } from './types';
 import { IconSparkles, IconPlay } from './components/Icons';
-import { getUserStats, clearUserStats, getUserPresets, saveUserPreset, deleteUserPreset } from './services/storageService';
+import { getUserStats, clearUserStats, getUserPresets, saveUserPreset, deleteUserPreset, getCustomBreathingPatterns, saveCustomBreathingPattern, deleteCustomBreathingPattern } from './services/storageService';
 import { PresetCard } from './components/PresetCard';
 import { PresetBuilder } from './components/PresetBuilder';
 
@@ -173,6 +173,7 @@ function App() {
   const [status, setStatus] = useState<GenerationState>({ step: 'idle', error: null });
   const [stats, setStats] = useState<UserStats | null>(null);
   const [userPresets, setUserPresets] = useState<MeditationPreset[]>([]);
+  const [customBreathingPatterns, setCustomBreathingPatterns] = useState<BreathingPattern[]>([]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Load stats and preferences on mount
@@ -180,6 +181,7 @@ function App() {
     const loadedStats = getUserStats();
     setStats(loadedStats);
     setUserPresets(getUserPresets());
+    setCustomBreathingPatterns(getCustomBreathingPatterns());
 
     // Apply defaults from preferences
     if (loadedStats.preferences) {
@@ -300,7 +302,7 @@ function App() {
     setUserPresets(updatedPresets);
   };
 
-  const startCustomBreath = () => {
+  const saveCustomBreath = () => {
     const phases: BreathPhase[] = [
         { label: 'Inhale' as BreathPhaseType, duration: Math.max(1, customBreath.inhale) },
         { label: 'Hold' as BreathPhaseType, duration: Math.max(0, customBreath.hold1) },
@@ -308,15 +310,22 @@ function App() {
         { label: 'Sustain' as BreathPhaseType, duration: Math.max(0, customBreath.hold2) },
     ].filter(p => p.duration > 0);
 
-    const pattern: BreathingPattern = {
-        id: 'custom',
-        name: 'Custom Rhythm',
-        description: `Custom (${customBreath.inhale}-${customBreath.hold1}-${customBreath.exhale}-${customBreath.hold2})`,
+    const pattern: Omit<BreathingPattern, 'id'> = {
+        name: `Custom (${customBreath.inhale}-${customBreath.hold1}-${customBreath.exhale}-${customBreath.hold2})`,
+        description: `${phases.reduce((acc, p) => acc + p.duration, 0)}s cycle`,
         color: 'from-pink-500 to-rose-600',
         icon: '⚡',
         phases: phases
     };
-    setActiveBreathPattern(pattern);
+    const updatedPatterns = saveCustomBreathingPattern(pattern);
+    setCustomBreathingPatterns(updatedPatterns);
+    // Switch to Quick Start tab to show the new pattern
+    setActiveTab('presets');
+  };
+
+  const handleDeleteCustomBreathing = (id: string) => {
+    const updatedPatterns = deleteCustomBreathingPattern(id);
+    setCustomBreathingPatterns(updatedPatterns);
   };
 
   const handleClearData = () => {
@@ -443,30 +452,53 @@ function App() {
                         Breathing Exercises
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {BREATHING_PATTERNS.map((pattern) => (
-                            <button
-                                key={pattern.id}
-                                onClick={() => setActiveBreathPattern(pattern)}
-                                className="bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 rounded-2xl p-5 text-left transition-all hover:scale-[1.02] shadow-xl group relative overflow-hidden"
-                            >
-                                <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${pattern.color} rounded-bl-2xl`}>
-                                    <IconPlay className="w-8 h-8 text-white" />
-                                </div>
-                                <h4 className="text-lg font-medium text-white mb-1">{pattern.name}</h4>
-                                <p className="text-slate-400 text-sm mb-3">{pattern.description}</p>
+                        {[...BREATHING_PATTERNS, ...customBreathingPatterns].map((pattern) => {
+                            const isCustom = pattern.id.startsWith('custom-');
+                            return (
+                            <div key={pattern.id} className="relative group">
+                                {isCustom && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm('Delete this custom breathing pattern?')) {
+                                                handleDeleteCustomBreathing(pattern.id);
+                                            }
+                                        }}
+                                        className="absolute top-2 right-2 z-10 p-1.5 bg-red-900/80 hover:bg-red-800 text-red-300 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete pattern"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setActiveBreathPattern(pattern)}
+                                    className="w-full h-full bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 rounded-2xl p-5 text-left transition-all hover:scale-[1.02] shadow-xl relative overflow-hidden"
+                                >
+                                    <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${pattern.color} rounded-bl-2xl`}>
+                                        <IconPlay className="w-8 h-8 text-white" />
+                                    </div>
+                                    {isCustom && (
+                                        <span className="absolute top-2 left-2 px-1.5 py-0.5 text-[9px] bg-pink-900/50 text-pink-400 rounded uppercase font-bold">Custom</span>
+                                    )}
+                                    <h4 className="text-lg font-medium text-white mb-1">{pattern.name}</h4>
+                                    <p className="text-slate-400 text-sm mb-3">{pattern.description}</p>
 
-                                <div className="flex gap-2 flex-wrap">
-                                    {pattern.phases.map((phase, i) => (
-                                        <div key={i} className="flex flex-col items-center">
-                                            <div className="text-[9px] text-slate-500 uppercase">{phase.label}</div>
-                                            <div className="font-mono text-teal-400 font-bold text-sm">{phase.duration}s</div>
-                                        </div>
-                                    ))}
-                                </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {pattern.phases.map((phase, i) => (
+                                            <div key={i} className="flex flex-col items-center">
+                                                <div className="text-[9px] text-slate-500 uppercase">{phase.label}</div>
+                                                <div className="font-mono text-teal-400 font-bold text-sm">{phase.duration}s</div>
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                <PatternVisualizer phases={pattern.phases} />
-                            </button>
-                        ))}
+                                    <PatternVisualizer phases={pattern.phases} />
+                                </button>
+                            </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -667,10 +699,10 @@ function App() {
                     </div>
 
                     <button
-                        onClick={startCustomBreath}
+                        onClick={saveCustomBreath}
                         className="w-full py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-medium rounded-xl shadow-lg shadow-pink-900/30 transition-all transform hover:scale-[1.01]"
                     >
-                        Start Custom Breathing
+                        Create Custom Breathing
                     </button>
                 </div>
             </div>

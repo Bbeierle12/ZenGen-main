@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T22:03:31Z
-version: 1.2
+last_updated: 2026-02-03T00:40:11Z
+version: 1.3
 author: Claude Code PM System
 ---
 
@@ -87,8 +87,8 @@ npm run test:coverage  # Run tests with coverage
 
 ## Environment Variables
 
-- `ANTHROPIC_API_KEY` - Required for AI features (must start with `sk-`)
-- Set via `.env.local` file
+- `VITE_ANTHROPIC_API_KEY` - Required for AI features (must start with `sk-`)
+- Set via `.env` file (Vite requires `VITE_` prefix for browser-accessible env vars)
 
 ## Dependencies Graph
 
@@ -129,4 +129,5 @@ ZenGen-main/
 - ES2022 features required (optional chaining, nullish coalescing)
 
 ## Update History
+- 2026-02-03T00:40:11Z: Fixed env var naming (VITE_ prefix for Vite compatibility)
 - 2026-02-02T22:03:31Z: Updated to reflect Gemini→Claude migration and new testing stack

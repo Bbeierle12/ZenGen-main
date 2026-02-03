@@ -1,7 +1,7 @@
 ---
 created: 2026-02-02T12:02:24Z
-last_updated: 2026-02-02T22:03:31Z
-version: 1.2
+last_updated: 2026-02-03T00:40:11Z
+version: 1.3
 author: Claude Code PM System
 ---
 
@@ -10,8 +10,8 @@ author: Claude Code PM System
 ## Current Status
 
 **Branch**: main
-**State**: Working (uncommitted changes - test suite complete)
-**Phase**: Test suite implementation and Gemini→Claude migration complete
+**State**: Working (uncommitted changes)
+**Phase**: UI reorganization and custom breathing patterns feature
 
 ## Recent Work
 
@@ -26,17 +26,20 @@ author: Claude Code PM System
 - **ErrorBoundary component** for graceful error recovery
 - **Timeout handling** in API calls
 - **Robust data validation** in storageService
-- **Improved state management** in BreathingPlayer and SessionPlayer
-- **Comprehensive test suite** with 326 tests across 13 test files
+- **Comprehensive test suite** with 325 tests across 13 test files
+- **UI Reorganization** - Two tabs: "Quick Start" (presets) and "Custom" (builders)
+- **Custom Breathing Patterns** - Users can create, save, and delete custom patterns
+- **Meditation Presets** - Clicking a preset now directly starts the meditation
+- **Fixed API Key handling** - Using `VITE_ANTHROPIC_API_KEY` for Vite compatibility
 
 ### Latest Commits
-- `71a34a4` - Add comprehensive mocks and test utilities for improved testing framework
-- `0b7cec1` - Refactor App component to integrate ErrorBoundary; improve error handling and state management
-- `bf740a9` - feat: Add initial documentation for project context
+- `4335782` - Refactor API key handling and update application structure
+- `b69ae98` - feat: Add meditation presets feature with preset management
+- `fa3df07` - feat: Complete migration from Gemini to Anthropic Claude API
 
-### Test Suite (NEW)
+### Test Suite
 - **13 test files** all passing
-- **326 tests** total
+- **325 tests** total
 - Coverage includes:
   - Service layer: claudeService, storageService, soundscapeService, audioUtils
   - Components: App, BreathingPlayer, SessionPlayer, ChatBot, ProfileModal, Navbar, ErrorBoundary, Icons, Loader
@@ -50,19 +53,21 @@ None identified.
 
 1. ~~**Testing**: Add test coverage for services and components~~ ✅ COMPLETE
 2. ~~**Migration**: Remove Gemini, use Claude~~ ✅ COMPLETE
-3. **Performance**: Optimize audio visualization for mobile
-4. **Polish**: Refine UI animations and transitions
-5. **Documentation**: Add inline comments for complex audio logic
-6. **CI/CD**: Set up automated test runs
+3. ~~**UI Reorganization**: Quick Start vs Custom tabs~~ ✅ COMPLETE
+4. ~~**Custom Breathing**: Save custom breathing patterns~~ ✅ COMPLETE
+5. **Performance**: Optimize audio visualization for mobile
+6. **Polish**: Refine UI animations and transitions
+7. **CI/CD**: Set up automated test runs
 
 ## Outstanding Items
 
 ### Known Issues
 - Uses deprecated `ScriptProcessorNode` for pink noise (works but not future-proof)
 - Text-to-speech uses Web Speech API fallback (Claude doesn't have TTS)
+- Voice selection disabled (TBA feature)
 
 ### Technical Debt
-- Large component files (BreathingPlayer ~550 lines, App ~530 lines)
+- Large component files (BreathingPlayer ~550 lines, App ~700+ lines)
 - Hardcoded API model names
 
 ### Future Enhancements
@@ -74,8 +79,9 @@ None identified.
 
 ## Session Notes
 
-Major milestone: Completed migration from Google Gemini to Anthropic Claude API. Comprehensive test suite implemented with 326 tests covering all services and major components. Test infrastructure includes Vitest, React Testing Library, and custom mocks for Web Audio API, localStorage, and requestAnimationFrame.
+UI reorganized into two clear tabs: "Quick Start" for ready-to-go meditations/breathing and "Custom" for building your own. Added custom breathing pattern storage with create/delete functionality. Fixed Vite environment variable handling for API key.
 
 ## Update History
+- 2026-02-03T00:40:11Z: Added custom breathing patterns, UI reorganization, fixed API key handling
 - 2026-02-02T22:03:31Z: Completed Gemini→Claude migration and test suite (326 tests passing)
 - 2026-02-02T20:47:02Z: Updated to reflect error handling improvements and new ErrorBoundary component

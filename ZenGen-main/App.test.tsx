@@ -42,6 +42,9 @@ vi.mock('./services/storageService', () => ({
   getUserPresets: vi.fn(() => []),
   saveUserPreset: vi.fn(() => []),
   deleteUserPreset: vi.fn(() => []),
+  getCustomBreathingPatterns: vi.fn(() => []),
+  saveCustomBreathingPattern: vi.fn(() => []),
+  deleteCustomBreathingPattern: vi.fn(() => []),
 }));
 
 vi.mock('./services/soundscapeService', () => ({
